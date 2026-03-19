@@ -1,4 +1,4 @@
-name: Asim No-Key Scraper
+name: Asim Categorized Scraper
 on:
   schedule:
     - cron: '*/15 * * * *'
@@ -20,20 +20,15 @@ jobs:
       - name: Install requests
         run: pip install requests
 
-      - name: Fetch Movies & Series (No API Key Needed!)
+      - name: Fetch Movies & Series with Genres
         run: |
           python -c "
-          import requests
-          import json
-          import sys
+          import requests, json, sys
 
-          print('--- Starting No-Key Scraper ---')
           movies_list = []
 
-          # 1. سحب الأفلام من مكتبة YTS المفتوحة
+          # سحب الأفلام مع التصنيفات (أكشن، دراما...)
           try:
-              print('Fetching Movies...')
-              # نسحب 10 صفحات (500 فيلم جديد)
               for p in range(1, 11):
                   url = f'https://yts.mx/api/v2/list_movies.json?limit=50&page={p}&sort_by=download_count'
                   r = requests.get(url, timeout=10)
@@ -44,17 +39,14 @@ jobs:
                               movies_list.append({
                                   'title': m['title'],
                                   'img': m['medium_cover_image'],
-                                  'id': m['imdb_code'], # كود IMDb السحري
-                                  'type': 'movie'
+                                  'id': m['imdb_code'],
+                                  'type': 'movie',
+                                  'genres': m.get('genres', []) # جلب التصنيفات
                               })
-              print(f'Movies fetched successfully. Total so far: {len(movies_list)}')
-          except Exception as e:
-              print(f'Movies Fetch Error: {e}')
+          except Exception as e: print(e)
 
-          # 2. سحب المسلسلات من مكتبة TVMaze المفتوحة
+          # سحب المسلسلات مع التصنيفات
           try:
-              print('Fetching Series...')
-              # نسحب صفحتين (500 مسلسل)
               for p in range(0, 2):
                   url = f'https://api.tvmaze.com/shows?page={p}'
                   r = requests.get(url, timeout=10)
@@ -68,25 +60,19 @@ jobs:
                                   'title': s['name'],
                                   'img': img,
                                   'id': imdb_id,
-                                  'type': 'tv'
+                                  'type': 'tv',
+                                  'genres': s.get('genres', []) # جلب التصنيفات
                               })
-              print(f'Series fetched successfully. Total items: {len(movies_list)}')
-          except Exception as e:
-              print(f'Series Fetch Error: {e}')
+          except Exception as e: print(e)
 
-          # حفظ البيانات في الملف (حوالي 1000 عنوان فوري)
           if len(movies_list) > 0:
               with open('movies.json', 'w', encoding='utf-8') as f:
                   json.dump(movies_list, f, ensure_ascii=False, indent=2)
-              print('Library saved successfully!')
-          else:
-              print('Error: No data scraped.')
-              sys.exit(1)
           "
       - name: Commit and Push
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "Asim-Bot"
           git add movies.json
-          git commit -m "🚀 تحديث المكتبة - بدون مفتاح وبدون حظر" || exit 0
+          git commit -m "🚀 تحديث المكتبة مع التصنيفات" || exit 0
           git push
