@@ -1,8 +1,8 @@
-name: Asim Unblockable Scraper
+name: Asim No-Key Scraper
 on:
   schedule:
-    - cron: '*/10 * * * *' # يعمل تلقائياً كل 10 دقائق
-  workflow_dispatch: # زر التشغيل اليدوي
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -20,79 +20,73 @@ jobs:
       - name: Install requests
         run: pip install requests
 
-      - name: Fetch Global Library (Muzarjama to Arabic)
+      - name: Fetch Movies & Series (No API Key Needed!)
         run: |
           python -c "
           import requests
           import json
           import sys
 
-          print('--- Starting Muzarjama Scraper ---')
-          
-          # يا عاصم، هذا هو المفتاح الجديد والشغال 100%
-          api_key = 'a7f19119a0815144b60e653dae0b968c' 
-          
-          movies = []
+          print('--- Starting No-Key Scraper ---')
+          movies_list = []
 
+          # 1. سحب الأفلام من مكتبة YTS المفتوحة
           try:
-              # نسحب 15 صفحة دفعة واحدة (حوالي 300 عنوان جديد كل 10 دقائق)
-              for p in range(1, 16):
-                  print(f'Fetching page {p}...')
-                  
-                  # ركز هنا: نحن نطلب اللغة العربية &language=ar-SA
-                  url = f'https://api.themoviedb.org/3/trending/all/day?api_key={api_key}&language=ar-SA&page={p}'
+              print('Fetching Movies...')
+              # نسحب 10 صفحات (500 فيلم جديد)
+              for p in range(1, 11):
+                  url = f'https://yts.mx/api/v2/list_movies.json?limit=50&page={p}&sort_by=download_count'
                   r = requests.get(url, timeout=10)
-                  
                   if r.status_code == 200:
-                      results = r.json().get('results', [])
-                      print(f'Found {len(results)} items on page {p}')
-                      
-                      for m in results:
-                          # التأكد من وجود بوستر للفيلم
-                          if m.get('poster_path'):
-                              movies.append({
-                                  'title': m.get('title') or m.get('name'), # العنوان مترجم تلقائياً للعربية
-                                  'img': 'https://image.tmdb.org/t/p/w500' + m['poster_path'],
-                                  'id': str(m['id']), # نحفظه كنص
-                                  'type': m.get('media_type', 'movie') # فيلم أو مسلسل
+                      data = r.json().get('data', {}).get('movies', [])
+                      for m in data:
+                          if m.get('imdb_code') and m.get('medium_cover_image'):
+                              movies_list.append({
+                                  'title': m['title'],
+                                  'img': m['medium_cover_image'],
+                                  'id': m['imdb_code'], # كود IMDb السحري
+                                  'type': 'movie'
                               })
-                  else:
-                      print(f'Error fetching page {p}: {r.status_code}')
-
-              print(f'Total scraped: {len(movies)}')
-
-              # تحميل المكتبة القديمة ودمج الجديد معها لزيادة العدد (حتى نصل لـ 15 ألف)
-              try:
-                  with open('movies.json', 'r', encoding='utf-8') as f:
-                      old_movies = json.load(f)
-              except:
-                  old_movies = []
-
-              # دمج بدون تكرار بناءً على الـ ID
-              existing_ids = {m['id'] for m in old_movies}
-              added = 0
-              for m in movies:
-                  if m['id'] not in existing_ids:
-                      old_movies.insert(0, m)
-                      added += 1
-              
-              print(f'Added {added} new items to library.')
-              
-              # الاحتفاظ بآخر 5000 عنوان للسرعة
-              final_list = old_movies[:5000]
-
-              with open('movies.json', 'w', encoding='utf-8') as f:
-                  json.dump(final_list, f, ensure_ascii=False, indent=2)
-
+              print(f'Movies fetched successfully. Total so far: {len(movies_list)}')
           except Exception as e:
-              print(f'Critical Error: {e}')
+              print(f'Movies Fetch Error: {e}')
+
+          # 2. سحب المسلسلات من مكتبة TVMaze المفتوحة
+          try:
+              print('Fetching Series...')
+              # نسحب صفحتين (500 مسلسل)
+              for p in range(0, 2):
+                  url = f'https://api.tvmaze.com/shows?page={p}'
+                  r = requests.get(url, timeout=10)
+                  if r.status_code == 200:
+                      shows = r.json()
+                      for s in shows:
+                          imdb_id = s.get('externals', {}).get('imdb')
+                          img = s.get('image', {}).get('original') or s.get('image', {}).get('medium')
+                          if imdb_id and img:
+                              movies_list.append({
+                                  'title': s['name'],
+                                  'img': img,
+                                  'id': imdb_id,
+                                  'type': 'tv'
+                              })
+              print(f'Series fetched successfully. Total items: {len(movies_list)}')
+          except Exception as e:
+              print(f'Series Fetch Error: {e}')
+
+          # حفظ البيانات في الملف (حوالي 1000 عنوان فوري)
+          if len(movies_list) > 0:
+              with open('movies.json', 'w', encoding='utf-8') as f:
+                  json.dump(movies_list, f, ensure_ascii=False, indent=2)
+              print('Library saved successfully!')
+          else:
+              print('Error: No data scraped.')
               sys.exit(1)
-          print('--- Muzarjama Scraper Finished ---')
           "
       - name: Commit and Push
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "Asim-Bot"
           git add movies.json
-          git commit -m "🚀 تزويد المكتبة بأفلام مترجمة تلقائياً" || exit 0
+          git commit -m "🚀 تحديث المكتبة - بدون مفتاح وبدون حظر" || exit 0
           git push
