@@ -1,10 +1,9 @@
-name: Asim Cinema Super Fetcher
+name: Asim Arabic Cinema Scraper
 on:
   schedule:
     - cron: '*/10 * * * *'
   workflow_dispatch:
 
-# إضافة هذا السطر لحل مشكلة الـ 403 نهائياً
 permissions:
   contents: write
 
@@ -18,31 +17,70 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install requests
-        run: pip install requests
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4
 
-      - name: Run Super Scraper
+      - name: Scrape Arabic Sites
         run: |
           python -c "
-          import requests, json
-          api_key = '8d6d91d92468487622723ad66479700b'
-          full_data = []
-          for p in range(1, 11): # زدنا الصفحات عشان عاصم يوصل للـ 15 ألف أسرع
-              r_m = requests.get(f'https://api.themoviedb.org/3/movie/popular?api_key={api_key}&language=ar-SA&page={p}')
-              if r_m.status_code == 200:
-                  for m in r_m.json().get('results', []):
-                      full_data.append({'title': m['title'], 'img': 'https://image.tmdb.org/t/p/w500' + m['poster_path'], 'id': m['id'], 'type': 'movie'})
-              r_s = requests.get(f'https://api.themoviedb.org/3/tv/popular?api_key={api_key}&language=ar-SA&page={p}')
-              if r_s.status_code == 200:
-                  for s in r_s.json().get('results', []):
-                      full_data.append({'title': s['name'], 'img': 'https://image.tmdb.org/t/p/w500' + s['poster_path'], 'id': s['id'], 'type': 'tv'})
+          import requests
+          from bs4 import BeautifulSoup
+          import json
+
+          def scrape_akwam():
+              base_url = 'https://ak.sv' # رابط أكوام الحالي
+              headers = {'User-Agent': 'Mozilla/5.0'}
+              movies = []
+              
+              # سحب أول 3 صفحات (حوالي 60-100 عنوان جديد في كل مرة)
+              for p in range(1, 4):
+                  try:
+                      r = requests.get(f'{base_url}/movies?page={p}', headers=headers, timeout=15)
+                      soup = BeautifulSoup(r.text, 'html.parser')
+                      items = soup.find_all('div', class_='entry-box')
+                      
+                      for item in items:
+                          title = item.find('h3').text.strip() if item.find('h3') else 'فيلم جديد'
+                          img = item.find('img')['src'] if item.find('img') else ''
+                          link = item.find('a')['href'] if item.find('a') else ''
+                          
+                          if link:
+                              movies.append({
+                                  'title': title,
+                                  'img': img,
+                                  'link': link, # رابط صفحة الفيلم في أكوام
+                                  'type': 'movie'
+                              })
+                  except:
+                      continue
+              return movies
+
+          # جلب الأفلام الجديدة
+          new_movies = scrape_akwam()
+
+          # تحميل المكتبة القديمة ودمج الجديد معها (عشان نوصل للـ 15 ألف)
+          try:
+              with open('movies.json', 'r', encoding='utf-8') as f:
+                  old_movies = json.load(f)
+          except:
+              old_movies = []
+
+          # دمج بدون تكرار
+          existing_links = {m['link'] for m in old_movies}
+          for m in new_movies:
+              if m['link'] not in existing_links:
+                  old_movies.insert(0, m)
+
+          # الاحتفاظ بآخر 5000 عنوان (عشان السرعة)
+          final_list = old_movies[:5000]
+
           with open('movies.json', 'w', encoding='utf-8') as f:
-              json.dump(full_data, f, ensure_ascii=False, indent=2)
+              json.dump(final_list, f, ensure_ascii=False, indent=2)
           "
       - name: Commit and Push
         run: |
           git config --local user.email "action@github.com"
-          git config --local user.name "Asim-Cinema-Bot"
+          git config --local user.name "Asim-Arabic-Bot"
           git add movies.json
-          git commit -m "Update Cinema Library" || exit 0
+          git commit -m "🚀 تم تحديث الأفلام العربية" || exit 0
           git push
