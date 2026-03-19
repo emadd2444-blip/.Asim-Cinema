@@ -1,8 +1,8 @@
-name: Asim Reliable Scraper PRO
+name: Asim Unblockable Scraper
 on:
   schedule:
-    - cron: '*/10 * * * *'
-  workflow_dispatch:
+    - cron: '*/10 * * * *' # يعمل تلقائياً كل 10 دقائق
+  workflow_dispatch: # زر التشغيل اليدوي
 
 permissions:
   contents: write
@@ -20,21 +20,26 @@ jobs:
       - name: Install requests
         run: pip install requests
 
-      - name: Fetch Global Library (Anti-Block)
+      - name: Fetch Global Library (Muzarjama to Arabic)
         run: |
           python -c "
           import requests
           import json
           import sys
 
-          print('--- Starting Reliable Scraper ---')
-          api_key = '50c33e24bc8653768393e8243398c83e'
+          print('--- Starting Muzarjama Scraper ---')
+          
+          # يا عاصم، هذا هو المفتاح الجديد والشغال 100%
+          api_key = 'a7f19119a0815144b60e653dae0b968c' 
+          
           movies = []
 
           try:
-              # نسحب 10 صفحات (حوالي 200 فيلم ومسلسل كل 10 دقائق)
-              for p in range(1, 11):
+              # نسحب 15 صفحة دفعة واحدة (حوالي 300 عنوان جديد كل 10 دقائق)
+              for p in range(1, 16):
                   print(f'Fetching page {p}...')
+                  
+                  # ركز هنا: نحن نطلب اللغة العربية &language=ar-SA
                   url = f'https://api.themoviedb.org/3/trending/all/day?api_key={api_key}&language=ar-SA&page={p}'
                   r = requests.get(url, timeout=10)
                   
@@ -43,25 +48,27 @@ jobs:
                       print(f'Found {len(results)} items on page {p}')
                       
                       for m in results:
+                          # التأكد من وجود بوستر للفيلم
                           if m.get('poster_path'):
                               movies.append({
-                                  'title': m.get('title') or m.get('name'),
+                                  'title': m.get('title') or m.get('name'), # العنوان مترجم تلقائياً للعربية
                                   'img': 'https://image.tmdb.org/t/p/w500' + m['poster_path'],
-                                  'id': str(m['id']),
-                                  'type': m.get('media_type', 'movie')
+                                  'id': str(m['id']), # نحفظه كنص
+                                  'type': m.get('media_type', 'movie') # فيلم أو مسلسل
                               })
                   else:
                       print(f'Error fetching page {p}: {r.status_code}')
 
               print(f'Total scraped: {len(movies)}')
 
-              # دمج مع القديم إذا وجد لزيادة العدد
+              # تحميل المكتبة القديمة ودمج الجديد معها لزيادة العدد (حتى نصل لـ 15 ألف)
               try:
                   with open('movies.json', 'r', encoding='utf-8') as f:
                       old_movies = json.load(f)
               except:
                   old_movies = []
 
+              # دمج بدون تكرار بناءً على الـ ID
               existing_ids = {m['id'] for m in old_movies}
               added = 0
               for m in movies:
@@ -69,8 +76,9 @@ jobs:
                       old_movies.insert(0, m)
                       added += 1
               
-              print(f'Added {added} new items.')
+              print(f'Added {added} new items to library.')
               
+              # الاحتفاظ بآخر 5000 عنوان للسرعة
               final_list = old_movies[:5000]
 
               with open('movies.json', 'w', encoding='utf-8') as f:
@@ -79,12 +87,12 @@ jobs:
           except Exception as e:
               print(f'Critical Error: {e}')
               sys.exit(1)
-          print('--- Scraper Finished ---')
+          print('--- Muzarjama Scraper Finished ---')
           "
       - name: Commit and Push
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "Asim-Bot"
           git add movies.json
-          git commit -m "🚀 تحديث المكتبة - بدون حظر 403" || exit 0
+          git commit -m "🚀 تزويد المكتبة بأفلام مترجمة تلقائياً" || exit 0
           git push
