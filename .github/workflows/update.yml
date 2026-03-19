@@ -1,0 +1,27 @@
+name: Asim Cinema Auto Fetch
+on:
+  schedule:
+    - cron: '*/5 * * * *' # يعمل تلقائياً كل 5 دقائق (أسرع شيء مسموح به)
+  workflow_dispatch: # زر للتشغيل اليدوي
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Get Movies from API
+        run: |
+          # جلب أحدث 20 فيلم ومسلسل وحفظهم في ملف movies.json
+          curl "https://api.themoviedb.org/3/trending/all/day?api_key=8d6d91d92468487622723ad66479700b&language=ar-SA" > raw.json
+          
+          # تحويل البيانات لشكل بسيط يفهمه موقعك
+          cat raw.json | jq '[.results[] | {title: (.title // .name), img: ("https://image.tmdb.org/t/p/w500" + .poster_path), id: .id, type: (.media_type // "movie")}]' > movies.json
+
+      - name: Save to Repository
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "Asim Bot"
+          git add movies.json
+          git commit -m "Update Movies List" || exit 0
+          git push
