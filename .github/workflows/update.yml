@@ -1,8 +1,8 @@
-name: Asim Arabic Cinema Scraper
+name: Asim Arabic Cinema Scraper PRO
 on:
   schedule:
-    - cron: '*/10 * * * *'
-  workflow_dispatch:
+    - cron: '*/10 * * * *' # يعمل تلقائياً كل 10 دقائق
+  workflow_dispatch: # زر التشغيل اليدوي
 
 permissions:
   contents: write
@@ -17,70 +17,114 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install dependencies
-        run: pip install requests beautifulsoup4
+      - name: Install beautifulsoup4 and requests
+        run: pip install beautifulsoup4 requests
 
-      - name: Scrape Arabic Sites
+      - name: Scrape Arabic Sites with full debug
         run: |
           python -c "
           import requests
           from bs4 import BeautifulSoup
           import json
+          import sys
 
           def scrape_akwam():
+              print('--- Scraper Starting ---')
               base_url = 'https://ak.sv' # رابط أكوام الحالي
               headers = {'User-Agent': 'Mozilla/5.0'}
               movies = []
               
-              # سحب أول 3 صفحات (حوالي 60-100 عنوان جديد في كل مرة)
-              for p in range(1, 4):
+              # سنقوم بسحب أول 5 صفحات للتأكد من جلب المحتوى (أكثر من 100 عنوان)
+              for p in range(1, 6):
                   try:
+                      print(f'Fetching page {p}...')
                       r = requests.get(f'{base_url}/movies?page={p}', headers=headers, timeout=15)
+                      
+                      if r.status_code != 200:
+                          print(f'Error: Page {p} returned status code {r.status_code}')
+                          continue
+
                       soup = BeautifulSoup(r.text, 'html.parser')
                       items = soup.find_all('div', class_='entry-box')
                       
-                      for item in items:
-                          title = item.find('h3').text.strip() if item.find('h3') else 'فيلم جديد'
-                          img = item.find('img')['src'] if item.find('img') else ''
-                          link = item.find('a')['href'] if item.find('a') else ''
+                      if not items:
+                          print(f'Warning: No movies found on page {p}. The site structure may have changed.')
+                          # If this is printed, it means my selector 'div.entry-box' is wrong.
+                          # I will add a broader check to see what is there, but without adding all HTML.
+                          print(f'First 500 chars of page {p}: {r.text[:500]}')
+                          continue
+                      
+                      print(f'Found {len(items)} items on page {p}')
+
+                      for i, item in enumerate(items):
+                          title_tag = item.find('h3')
+                          title = title_tag.text.strip() if title_tag else 'فيلم جديد'
                           
-                          if link:
+                          # الحماية قد تخفي الصورة، سنحاول جلبها بذكاء (lazy loading)
+                          img_tag = item.find('img')
+                          if img_tag:
+                              img = img_tag.get('data-src') or img_tag.get('src') or ''
+                          else:
+                              img = ''
+                          
+                          link_tag = item.find('a')
+                          link = link_tag.get('href') if link_tag else ''
+                          
+                          # التأكد من أن الرابط كامل وليس نسبياً
+                          if link and not link.startswith('http'):
+                              link = base_url + link
+
+                          print(f'Scraped item {i+1}: Title=\'{title[:20]}\', Link=\'{link[:20]}\'')
+
+                          if title and img and link:
                               movies.append({
                                   'title': title,
                                   'img': img,
-                                  'link': link, # رابط صفحة الفيلم في أكوام
+                                  'link': link, 
                                   'type': 'movie'
                               })
-                  except:
+                  except Exception as e:
+                      print(f'An error occurred on page {p}: {e}')
                       continue
+              print('--- Scraper Finished ---')
               return movies
 
           # جلب الأفلام الجديدة
           new_movies = scrape_akwam()
+          print(f'Total new movies scraped: {len(new_movies)}')
 
           # تحميل المكتبة القديمة ودمج الجديد معها (عشان نوصل للـ 15 ألف)
           try:
               with open('movies.json', 'r', encoding='utf-8') as f:
                   old_movies = json.load(f)
-          except:
+              print(f'Loaded old library of {len(old_movies)} movies.')
+          except FileNotFoundError:
+              print('movies.json not found, creating a new one.')
+              old_movies = []
+          except json.JSONDecodeError:
+              print('Error decoding movies.json, starting with an empty list.')
               old_movies = []
 
           # دمج بدون تكرار
           existing_links = {m['link'] for m in old_movies}
+          added_count = 0
           for m in new_movies:
               if m['link'] not in existing_links:
                   old_movies.insert(0, m)
+                  added_count += 1
+          print(f'Added {added_count} new movies to the library.')
 
           # الاحتفاظ بآخر 5000 عنوان (عشان السرعة)
           final_list = old_movies[:5000]
 
           with open('movies.json', 'w', encoding='utf-8') as f:
               json.dump(final_list, f, ensure_ascii=False, indent=2)
+          print(f'New library size: {len(old_movies)} (saved last 5000).')
           "
       - name: Commit and Push
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "Asim-Arabic-Bot"
           git add movies.json
-          git commit -m "🚀 تم تحديث الأفلام العربية" || exit 0
+          git commit -m "🚀 تم تحديث الأفلام العربية - مكتبة من 5000 عنوان فوري" || exit 0
           git push
