@@ -709,7 +709,8 @@
     "type": "tv",
     "genres": [
       "Drama",
-      "Crime"
+      "Crime",
+      "Mystery"
     ]
   },
   {
@@ -3197,7 +3198,7 @@
   },
   {
     "title": "MasterChef",
-    "img": "https://static.tvmaze.com/uploads/images/original_untouched/565/1413347.jpg",
+    "img": "https://static.tvmaze.com/uploads/images/original_untouched/619/1549746.jpg",
     "id": "tt1694423",
     "type": "tv",
     "genres": [
@@ -3867,7 +3868,8 @@
     "type": "tv",
     "genres": [
       "Drama",
-      "Medical"
+      "Medical",
+      "History"
     ]
   },
   {
