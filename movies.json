@@ -309,7 +309,7 @@
   },
   {
     "title": "American Horror Story",
-    "img": "https://static.tvmaze.com/uploads/images/original_untouched/473/1183640.jpg",
+    "img": "https://static.tvmaze.com/uploads/images/original_untouched/636/1591621.jpg",
     "id": "tt1844624",
     "type": "tv",
     "genres": [
@@ -467,6 +467,7 @@
     "type": "tv",
     "genres": [
       "Drama",
+      "Action",
       "Crime"
     ]
   },
@@ -862,7 +863,7 @@
   },
   {
     "title": "The Simpsons",
-    "img": "https://static.tvmaze.com/uploads/images/original_untouched/588/1471731.jpg",
+    "img": "https://static.tvmaze.com/uploads/images/original_untouched/637/1594614.jpg",
     "id": "tt0096697",
     "type": "tv",
     "genres": [
@@ -1168,7 +1169,7 @@
   },
   {
     "title": "King of the Hill",
-    "img": "https://static.tvmaze.com/uploads/images/original_untouched/592/1480199.jpg",
+    "img": "https://static.tvmaze.com/uploads/images/original_untouched/633/1583514.jpg",
     "id": "tt0118375",
     "type": "tv",
     "genres": [
@@ -1305,7 +1306,8 @@
     "id": "tt0369179",
     "type": "tv",
     "genres": [
-      "Comedy"
+      "Comedy",
+      "Family"
     ]
   },
   {
@@ -2928,7 +2930,7 @@
   },
   {
     "title": "Chasing Life",
-    "img": "https://static.tvmaze.com/uploads/images/original_untouched/1/4924.jpg",
+    "img": "https://static.tvmaze.com/uploads/images/original_untouched/634/1587437.jpg",
     "id": "tt2399794",
     "type": "tv",
     "genres": [
@@ -3422,7 +3424,7 @@
   },
   {
     "title": "It's Always Sunny in Philadelphia",
-    "img": "https://static.tvmaze.com/uploads/images/original_untouched/632/1581611.jpg",
+    "img": "https://static.tvmaze.com/uploads/images/original_untouched/636/1592247.jpg",
     "id": "tt0472954",
     "type": "tv",
     "genres": [
@@ -3505,7 +3507,8 @@
     "type": "tv",
     "genres": [
       "Comedy",
-      "Family"
+      "Family",
+      "Romance"
     ]
   },
   {
@@ -3524,7 +3527,8 @@
     "type": "tv",
     "genres": [
       "Drama",
-      "Crime"
+      "Crime",
+      "Medical"
     ]
   },
   {
@@ -4930,8 +4934,7 @@
     "type": "tv",
     "genres": [
       "Comedy",
-      "Family",
-      "Adult"
+      "Family"
     ]
   }
 ]
